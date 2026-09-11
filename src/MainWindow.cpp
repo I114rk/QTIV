@@ -59,6 +59,9 @@ MainWindow::MainWindow(QWidget* parent)
     createStatusBar();
 
     connect(m_store, &ImageStore::currentChanged, this, &MainWindow::onCurrentChanged);
+    connect(m_strip, &ThumbnailStrip::indexActivated, this, [this](int index) {
+        m_store->setCurrent(index);
+    });
     connect(m_view, &ImageView::zoomChanged, this, [this](double scale) {
         m_statusZoom->setText(QStringLiteral("%1%").arg(qRound(scale * 100.0)));
     });
@@ -427,6 +430,7 @@ void MainWindow::createToolBar()
 
     m_toolbar->addAction(m_compareAction);
     m_toolbar->addAction(m_exportCurrentAction);
+    m_toolbar->addAction(m_exportPlaylistAction);
     m_toolbar->addSeparator();
 
     m_toolbar->addAction(m_fullscreenAction);

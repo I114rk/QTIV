@@ -53,6 +53,12 @@ ThumbnailStrip::ThumbnailStrip(ImageStore* store, QWidget* parent)
     connect(store, &ImageStore::listReset, this, &ThumbnailStrip::rebuild);
     connect(store, &ImageStore::currentChanged, this, &ThumbnailStrip::setCurrentIndex);
     connect(m_list, &QListWidget::itemClicked, this, &ThumbnailStrip::onItemClicked);
+    // Навигация стрелками внутри ленты (currentRowChanged) — так же, как кликом;
+    // циклов нет: программная установка в setCurrentIndex идёт под blockSignals.
+    connect(m_list, &QListWidget::currentRowChanged, this, [this](int row) {
+        if (row >= 0)
+            emit indexActivated(row);
+    });
 
     rebuild();
 }

@@ -124,7 +124,7 @@ bool renderKitty(const QImage& image, const TermRender::Caps& caps)
 
         QByteArray params;
         if (first) {
-            params = QStringLiteral("f=100,s=%1,v=%2,c=%3,r=%4,m=%5")
+            params = QStringLiteral("f=100,q=2,s=%1,v=%2,c=%3,r=%4,m=%5")
                          .arg(scaled.width())
                          .arg(scaled.height())
                          .arg(cellsW)
@@ -504,6 +504,11 @@ Caps detectCaps()
     if (!caps.isTty)
         return caps;
 
+    // tmux не пропускает APC/DCS-последовательности (kitty/sixel) наружу —
+    // внутри мультиплексора честно работают только полублоки и ASCII.
+    if (!qgetenv("TMUX").isEmpty())
+        return caps;
+
     // Активный запрос поддержки kitty graphics (ответ приходит на stdin).
     const QByteArray kittyReply =
         queryTerminal(QByteArrayLiteral("\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\"), 150);
@@ -513,7 +518,7 @@ Caps detectCaps()
         // DA1: параметр 4 = поддержка sixel.
         const QByteArray da = queryTerminal(QByteArrayLiteral("\x1b[c"), 150);
         if (da.contains("\x1b[?")) {
-            const int start = da.indexOf("\x1b[?") + 4;
+            const int start = da.indexOf("\x1b[?") + 3; // длина "\x1b[?"
             const int end = da.indexOf('c', start);
             if (end > start) {
                 const QList<QByteArray> params = da.mid(start, end - start).split(';');
@@ -537,26 +542,10 @@ Caps detectCaps()
     return caps;
 }
 
-bool render(const QImage& image, Mode mode, const Caps& caps)
+namespace {
+
+bool renderOne(const QImage& image, Mode m, const Caps& caps)
 {
-    if (image.isNull())
-        return false;
-
-    Mode m = mode;
-    if (!caps.isTty) {
-        // Пайп или файл: только чистый ASCII без escape-последовательностей.
-        m = Mode::Ascii;
-    } else if (m == Mode::Auto) {
-        if (caps.kittyGraphics)
-            m = Mode::Kitty;
-        else if (caps.sixel)
-            m = Mode::Sixel;
-        else if (caps.truecolor || caps.color256)
-            m = Mode::Half;
-        else
-            m = Mode::Ascii;
-    }
-
     switch (m) {
     case Mode::Kitty:
         return renderKitty(image, caps);
@@ -568,6 +557,39 @@ bool render(const QImage& image, Mode mode, const Caps& caps)
         return renderAscii(image, caps, caps.isTty && (caps.truecolor || caps.color256));
     case Mode::Auto:
         break;
+    }
+    return false;
+}
+
+} // namespace
+
+bool render(const QImage& image, Mode mode, const Caps& caps)
+{
+    if (image.isNull())
+        return false;
+
+    Mode primary;
+    if (!caps.isTty) {
+        // Пайп или файл: только чистый ASCII без escape-последовательностей.
+        return renderOne(image, Mode::Ascii, caps);
+    } else if (mode == Mode::Auto) {
+        if (caps.kittyGraphics)
+            primary = Mode::Kitty;
+        else if (caps.sixel)
+            primary = Mode::Sixel;
+        else if (caps.truecolor || caps.color256)
+            primary = Mode::Half;
+        else
+            primary = Mode::Ascii;
+    } else {
+        primary = mode;
+    }
+
+    // Основной режим; при неудаче — деградация до гарантированно работающего.
+    const Mode chain[] = {primary, Mode::Sixel, Mode::Half, Mode::Ascii};
+    for (const Mode m : chain) {
+        if (renderOne(image, m, caps))
+            return true;
     }
     return false;
 }

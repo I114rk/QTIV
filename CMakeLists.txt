@@ -10,8 +10,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
 
-qt_add_executable(qtiv
-    src/main.cpp
+# Всё, кроме main.cpp: используется и приложением, и GUI-тестами.
+add_library(qtiv_core STATIC
     src/Cli.h
     src/Cli.cpp
     src/Locale.h
@@ -38,6 +38,11 @@ qt_add_executable(qtiv
     src/MainWindow.h
     src/MainWindow.cpp
 )
+target_include_directories(qtiv_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(qtiv_core PUBLIC QTIV_VERSION="${PROJECT_VERSION}")
+target_link_libraries(qtiv_core PUBLIC Qt6::Widgets)
+
+qt_add_executable(qtiv src/main.cpp)
 
 qt_add_resources(qtiv "assets" PREFIX "/" FILES
     assets/theme.qss
@@ -56,9 +61,7 @@ qt_add_resources(qtiv "assets" PREFIX "/" FILES
     assets/icons/sync.svg
 )
 
-target_compile_definitions(qtiv PRIVATE QTIV_VERSION="${PROJECT_VERSION}")
-
-target_link_libraries(qtiv PRIVATE Qt6::Widgets)
+target_link_libraries(qtiv PRIVATE qtiv_core)
 
 include(GNUInstallDirs)
 
@@ -78,11 +81,19 @@ else()
     target_link_libraries(tst_qtivp PRIVATE Qt6::Gui Qt6::Test)
     add_test(NAME qtivp COMMAND tst_qtivp)
 
+    add_executable(tst_gui tests/tst_gui.cpp)
+    target_link_libraries(tst_gui PRIVATE qtiv_core Qt6::Test)
+    target_compile_definitions(tst_gui PRIVATE QTIV_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME gui COMMAND tst_gui)
+
     find_package(Python3 COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
         add_test(NAME interop
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/qtivp_check.py
                          --bin $<TARGET_FILE:qtiv> --workdir ${CMAKE_CURRENT_BINARY_DIR}/interop)
+        add_test(NAME terminal
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pty_check.py
+                         $<TARGET_FILE:qtiv>)
     else()
         message(STATUS "Python3 not found - interop test skipped")
     endif()

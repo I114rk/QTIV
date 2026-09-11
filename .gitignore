@@ -2,4 +2,6 @@ build/
 .qwen/
 packaging/src/
 packaging/pkg/
+packaging/qtiv/
 packaging/*.pkg.tar.*
+main.save

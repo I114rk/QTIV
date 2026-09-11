@@ -74,6 +74,11 @@ ExportDialog::ExportDialog(ImageStore* store, Scope scope, QWidget* parent)
     root->addWidget(new QLabel(i18n::s("Format:"), this));
     m_formatCombo = new QComboBox(this);
     for (const FormatInfo& f : formats()) {
+        // Альбом .qtivp — это всегда весь плейлист, поэтому он предлагается
+        // только в «Экспорте плейлиста» (Ctrl+Shift+S), а не в конвертации
+        // одного фото: иначе легко получить альбом с одной фотографией.
+        if (m_scope == Scope::CurrentImage && qstrcmp(f.key, "qtivp") == 0)
+            continue;
         QString label;
         if (qstrcmp(f.key, "qtivp") == 0)
             label = i18n::s("QTIVP album (photos in one file)");
