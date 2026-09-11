@@ -25,11 +25,11 @@ build() {
 }
 
 check() {
-    ctest --test-dir "$srcdir/qtiv/build" --output-on-failure
+    ctest --test-dir build --output-on-failure
 }
 
 package() {
-    DESTDIR="$pkgdir" cmake --install "$srcdir/qtiv/build"
+    DESTDIR="$pkgdir" cmake --install build
     install -Dm644 "$srcdir/qtiv/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname/"
     install -Dm644 "$srcdir/qtiv/README.md" -t "$pkgdir/usr/share/doc/$pkgname/"
 }
