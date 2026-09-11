@@ -10,6 +10,10 @@ qtiv photo.jpg              # папка фото → плейлист, фото
 qtiv a.jpg b.png c.webp     # плейлист ровно из этих файлов
 qtiv album.qtivp            # альбом как плейлист
 qtiv -c photo.png           # показать фото прямо в терминале
+qtiv -comp before.jpg after.jpg   # сразу в режим сравнения
+qtiv -comp -n=3 album.qtivp # сравнить 3 фото из альбома
+qtivp -compress photos.qtivp photo*.*   # упаковать фото в альбом
+qtivp -extract photos.qtivp ~/out      # распаковать альбом
 ```
 
 ## Возможности
@@ -18,10 +22,12 @@ qtiv -c photo.png           # показать фото прямо в терми
   перетаскиванием, «по размеру окна» / «1:1» (двойной клик переключает),
   шахматный фон под прозрачностью, учёт EXIF-ориентации.
 - **Плейлист** — папка открытого файла (как в видеоплеерах), лента миниатюр
-  снизу (генерируется в фоне), навигация стрелками/PgUp/PgDn/Home/End,
-  переход к номеру, drag&drop.
-- **Сравнение (F12)** — два изображения рядом, **синхронные зум и
+  снизу (генерируется в фоне; клик и стрелки внутри ленты переключают
+  фото), навигация стрелками/PgUp/PgDn/Home/End, переход к номеру,
+  drag&drop.
+- **Сравнение (F12)** — от 2 до 8 изображений рядом, **синхронные зум и
   панорамирование**, выбор фото для каждой панели, сплиттер можно двигать.
+  Из консоли: `qtiv -comp a.png b.png` или `qtiv -comp -n=3 album.qtivp`.
 - **Форматы** — JPG, PNG, WebP, AVIF, BMP, GIF, TIFF, HEIC и ещё ~30
   (всё, что даёт Qt + плагин qt6-imageformats).
 - **Конвертация (Ctrl+S / Ctrl+Shift+S)** — текущее фото или весь плейлист
@@ -29,10 +35,14 @@ qtiv -c photo.png           # показать фото прямо в терми
 - **`.qtivp`** — открытый контейнер: несколько фото в одном файле **без
   перекодирования**. Упаковка, распаковка, чтение из CLI. Полная
   спецификация: [docs/QTIVP-SPEC.md](docs/QTIVP-SPEC.md).
+- **Инструмент `qtivp`** — работа с альбомами из консоли: `-compress`
+  (упаковать фото, альбомы и целые папки), `-extract` (распаковать байт в
+  байт), `-list` (содержимое), `-test` (проверка CRC всех записей).
 - **Терминал (`qtiv -c`)** — настоящее фото в терминале: kitty graphics
   (kitty, WezTerm, Ghostty, Konsole), sixel (foot, xterm, mintty), при
   отсутствии протоколов — цветные полублоки, а в самом простом случае —
-  ASCII-арт. Возможности терминала определяются автоматически.
+  ASCII-арт. Возможности терминала определяются автоматически (внутри
+  tmux используются полублоки).
 - **Два языка интерфейса** — Русский / English / Системный, переключение
   на лету без перезапуска.
 - **Настройки сохраняются** — язык, геометрия окна, последний каталог,
@@ -51,7 +61,7 @@ qtiv -c photo.png           # показать фото прямо в терми
 | `Ctrl+1`           | реальный размер (1:1)                 |
 | двойной клик       | переключить «вписать» / «1:1»         |
 | `F12` или `C`      | режим сравнения                       |
-| `A` / `D`          | выбор левого / правого фото (в сравнении) |
+| `+ панель` / `− панель` | добавить/убрать панель (в сравнении) |
 | `S`                | вкл/выкл синхронизацию (в сравнении)  |
 | `T`                | лента миниатюр                        |
 | `F11`              | полный экран                          |
@@ -71,17 +81,31 @@ qtiv -c, --cat FILES...    показать в терминале (авто-ре
     --half                 форсировать полублоки
     --sixel                форсировать sixel
     --kitty                форсировать kitty graphics
+qtiv -comp [FILES...]      сразу режим сравнения (2 панели)
+qtiv -comp -n=K FILE       сравнить K фото из альбома/папки
 qtiv --info FILE           JSON с информацией об изображении или альбоме
 qtiv --pack OUT FILES...   упаковать изображения/альбомы в .qtivp
 qtiv --help | --version
+```
+
+### qtivp — инструмент альбомов
+
+```
+qtivp -compress OUT FILES...   упаковать фото/альбомы/папки в альбом
+qtivp -extract ALBUM [DIR]     распаковать альбом (байт в байт)
+qtivp -list ALBUM              показать содержимое
+qtivp -test ALBUM              проверить структуру и CRC каждой записи
 ```
 
 Примеры:
 
 ```console
 $ qtiv --info examples/demo.qtivp | python -m json.tool
-$ qtiv --pack holiday.qtivp ~/Photos/*.jpg
+$ qtiv -comp -n=3 examples/demo.qtivp
 $ qtiv -c --sixel sunset.png
+$ qtivp -compress photos.qtivp photo1.png photo2.png photo100.png
+$ qtivp -compress photos.qtivp photo*.*
+$ qtivp -extract photos.qtivp ~/out && qtivp -test photos.qtivp
 ```
 
 ## Сборка
@@ -122,11 +146,13 @@ zlib-сжатие, фото хранятся без перекодировани
 
 ```
 src/           C++20/Qt6: MainWindow, ImageView, CompareView, ImageStore,
-               Qtivp (формат), TerminalRender (kitty/sixel/ascii), Cli, Locale
+               Qtivp (формат), TerminalRender (kitty/sixel/ascii), Cli, Locale,
+               QtivpTool (консольный инструмент qtivp)
 assets/        иконки, тёмная тема, иконка приложения
 docs/          QTIVP-SPEC.md — спецификация формата
 packaging/     PKGBUILD, .desktop, MIME-описание
-tests/         tst_qtivp.cpp (unit), qtivp_check.py (интероп)
+tests/         tst_qtivp.cpp (unit), tst_gui.cpp (GUI), qtivp_check.py
+               (интероп + инструмент), pty_check.py (режимы терминала)
 examples/      демо-изображения и готовый альбом demo.qtivp
 ```
 

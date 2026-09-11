@@ -14,8 +14,12 @@ const QHash<QString, QString>& ru()
 {
     static const QHash<QString, QString> dict = {
         // --- Сравнение -----------------------------------------------------
-        {QStringLiteral("Image on the left (A)"), QStringLiteral("Изображение слева (A)")},
-        {QStringLiteral("Image on the right (D)"), QStringLiteral("Изображение справа (D)")},
+        {QStringLiteral("Image for this panel"), QStringLiteral("Изображение для этой панели")},
+        {QStringLiteral("+ panel"), QStringLiteral("+ панель")},
+        {QStringLiteral("\xE2\x88\x92 panel"), QStringLiteral("\xE2\x88\x92 панель")},
+        {QStringLiteral("Add a comparison panel"), QStringLiteral("Добавить панель сравнения")},
+        {QStringLiteral("Remove the last comparison panel"),
+         QStringLiteral("Убрать последнюю панель сравнения")},
         {QStringLiteral("Close"), QStringLiteral("Закрыть")},
         {QStringLiteral("Image could not be decoded"), QStringLiteral("Не удалось декодировать изображение")},
         {QStringLiteral("Sync: on"), QStringLiteral("Синхр.: вкл")},

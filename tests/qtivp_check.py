@@ -119,6 +119,7 @@ def run(cmd):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bin", required=True, help="path to the qtiv binary")
+    ap.add_argument("--tool", default=None, help="path to the qtivp tool binary")
     ap.add_argument("--workdir", required=True)
     args = ap.parse_args()
     os.makedirs(args.workdir, exist_ok=True)
@@ -178,6 +179,32 @@ def main():
     art_album = run([args.bin, "-c", "--ascii", album_py]).decode("utf-8", "replace")
     assert len(art_album) > 40 and "\x1b" not in art_album
     print("5) qtiv -c --ascii on album in pipe: OK")
+
+    if args.tool:
+        # 6) qtivp -compress → читаем альбом независимо по спецификации.
+        tool_album = os.path.join(args.workdir, "tool-made.qtivp")
+        out = run([args.tool, "-compress", tool_album, file_a, file_b]).decode()
+        assert "OK: packed 2" in out, out
+        entries = read_album(tool_album)
+        assert len(entries) == 2, len(entries)
+        assert entries[0]["blob"] == png_a, "tool blob A differs from original"
+        assert entries[1]["blob"] == png_b, "tool blob B differs from original"
+        print("6) qtivp -compress album verified by independent reader: OK")
+
+        # 7) qtivp -extract → байт-в-байт исходные файлы.
+        out_dir = os.path.join(args.workdir, "tool-out")
+        run([args.tool, "-extract", tool_album, out_dir])
+        for name, blob in (("a.png", png_a), ("b.png", png_b)):
+            with open(os.path.join(out_dir, name), "rb") as f:
+                assert f.read() == blob, "extracted %s differs" % name
+        print("7) qtivp -extract restores byte-identical photos: OK")
+
+        # 8) qtivp -test / -list.
+        out = run([args.tool, "-test", tool_album]).decode()
+        assert "OK: album is valid" in out, out
+        out = run([args.tool, "-list", tool_album]).decode()
+        assert "a.png" in out and "b.png" in out, out
+        print("8) qtivp -test / -list: OK")
 
     print("\nAll interop checks passed.")
     return 0

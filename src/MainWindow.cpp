@@ -198,6 +198,40 @@ void MainWindow::onCurrentChanged(int index)
     updateView();
 }
 
+int MainWindow::playlistCount() const
+{
+    return m_store->count();
+}
+
+int MainWindow::currentIndex() const
+{
+    return m_store->current();
+}
+
+void MainWindow::ensureCompareView(int panels)
+{
+    if (m_compare)
+        return;
+    m_compare = new CompareView(m_store, panels, this);
+    m_compare->setSyncEnabled(AppSettings::instance().syncCompare());
+    m_stack->addWidget(m_compare);
+    connect(m_compare, &CompareView::closed, this, [this] {
+        m_compareAction->setChecked(false);
+    });
+}
+
+void MainWindow::showCompare(const QVector<int>& indices)
+{
+    if (m_store->count() < 2)
+        return;
+    ensureCompareView(indices.isEmpty() ? 2 : indices.size());
+    if (!indices.isEmpty())
+        m_compare->setIndices(indices);
+    m_stack->setCurrentWidget(m_compare);
+    if (!m_compareAction->isChecked())
+        m_compareAction->setChecked(true);
+}
+
 void MainWindow::toggleCompare(bool on)
 {
     if (on) {
@@ -205,14 +239,7 @@ void MainWindow::toggleCompare(bool on)
             m_compareAction->setChecked(false);
             return;
         }
-        if (!m_compare) {
-            m_compare = new CompareView(m_store, this);
-            m_compare->setSyncEnabled(AppSettings::instance().syncCompare());
-            m_stack->addWidget(m_compare);
-            connect(m_compare, &CompareView::closed, this, [this] {
-                m_compareAction->setChecked(false);
-            });
-        }
+        ensureCompareView(2);
         m_stack->setCurrentWidget(m_compare);
     } else {
         m_stack->setCurrentIndex(0);

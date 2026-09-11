@@ -35,6 +35,9 @@ void printUsage()
         << "      --half                 Force halfblock art        (--cat mode)\n"
         << "      --sixel                Force sixel graphics       (--cat mode)\n"
         << "      --kitty                Force kitty graphics       (--cat mode)\n"
+        << "  qtiv -comp [FILES...]      Open in compare mode (2 panels)\n"
+        << "  qtiv -comp -n=K FILE       Compare K photos from FILE (album or folder)\n"
+        << "  qtiv -comp A.png B.png     Compare exactly these photos\n"
         << "      --info FILE            Print image/album info as JSON and exit\n"
         << "      --pack OUT FILES...    Pack images (or albums) into a .qtivp album\n"
         << "  -h, --help                 Show this help\n"
@@ -45,6 +48,8 @@ void printUsage()
         << "  qtiv a.jpg b.png c.webp    Playlist from exactly these files\n"
         << "  qtiv album.qtivp           Open album as playlist\n"
         << "  qtiv -c photo.png          Show photo in the terminal\n"
+        << "  qtiv -comp before.jpg after.jpg\n"
+        << "  qtiv -comp -n=3 album.qtivp\n"
         << "  qtiv --pack holiday.qtivp *.jpg\n"
         << "  qtiv --info album.qtivp\n";
     out.flush();
@@ -154,18 +159,53 @@ int main(int argc, char* argv[])
     MainWindow window;
     window.show();
 
+    bool compareMode = false;
+    int compareCount = -1; // -n=K: сколько фото сравнивать; -1 = не задано
     QStringList paths;
     for (int i = 1; i < argc; ++i) {
         const QString arg = QString::fromLocal8Bit(argv[i]);
-        if (arg.startsWith(QLatin1Char('-')))
-            continue;
-        if (arg.startsWith(QLatin1String("file://")))
+        if (arg == QLatin1String("-comp") || arg == QLatin1String("--compare")) {
+            compareMode = true;
+        } else if (arg.startsWith(QLatin1String("-n="))) {
+            compareCount = arg.mid(3).toInt();
+        } else if (arg.startsWith(QLatin1String("--count="))) {
+            compareCount = arg.mid(8).toInt();
+        } else if (arg.startsWith(QLatin1Char('-'))) {
+            continue; // остальные опции Qt (например, -platform)
+        } else if (arg.startsWith(QLatin1String("file://"))) {
             paths << QUrl(arg).toLocalFile();
-        else
+        } else {
             paths << arg;
+        }
     }
+    if (compareCount > 0 && !compareMode)
+        std::fprintf(stderr, "warning: -n=K has no effect without -comp\n");
+    if (compareCount == 1)
+        compareCount = 2;
+
     if (!paths.isEmpty())
         window.loadPaths(paths);
+
+    if (compareMode && window.playlistCount() >= 2) {
+        QVector<int> indices;
+        const int total = window.playlistCount();
+        if (paths.size() >= 2) {
+            // Явный список файлов: сравниваем их (или первые K при -n=).
+            const int n = compareCount > 0 ? qMin(compareCount, total) : total;
+            for (int i = 0; i < n; ++i)
+                indices << i;
+            window.showCompare(indices);
+        } else if (compareCount > 2) {
+            // Один путь (альбом/папка) и -n=K: текущее фото и следующие.
+            const int cur = window.currentIndex();
+            for (int i = 0; i < compareCount; ++i)
+                indices << (cur + i) % total;
+            window.showCompare(indices);
+        } else {
+            // Один путь без -n=: пара «текущее + следующее».
+            window.showCompare();
+        }
+    }
 
     return app.exec();
 }

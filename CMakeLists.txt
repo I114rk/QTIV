@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(qtiv VERSION 0.1.0 LANGUAGES CXX)
+project(qtiv VERSION 0.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,9 +63,14 @@ qt_add_resources(qtiv "assets" PREFIX "/" FILES
 
 target_link_libraries(qtiv PRIVATE qtiv_core)
 
+# Консольный инструмент для альбомов .qtivp (упаковка/распаковка/проверка).
+qt_add_executable(qtivp-tool src/QtivpTool.cpp)
+set_target_properties(qtivp-tool PROPERTIES OUTPUT_NAME qtivp)
+target_link_libraries(qtivp-tool PRIVATE qtiv_core)
+
 include(GNUInstallDirs)
 
-install(TARGETS qtiv RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS qtiv qtivp-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES packaging/qtiv.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 install(FILES packaging/x-qtivp.xml DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/mime/packages)
 install(FILES assets/qtiv.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
@@ -90,7 +95,8 @@ else()
     if(Python3_Interpreter_FOUND)
         add_test(NAME interop
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/qtivp_check.py
-                         --bin $<TARGET_FILE:qtiv> --workdir ${CMAKE_CURRENT_BINARY_DIR}/interop)
+                         --bin $<TARGET_FILE:qtiv> --tool $<TARGET_FILE:qtivp-tool>
+                         --workdir ${CMAKE_CURRENT_BINARY_DIR}/interop)
         add_test(NAME terminal
                  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/pty_check.py
                          $<TARGET_FILE:qtiv>)

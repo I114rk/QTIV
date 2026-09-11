@@ -3,11 +3,11 @@
 # (в репозитории должен быть хотя бы один git-коммит — makepkg клонирует его)
 
 pkgname=qtiv
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
-pkgdesc="Qt Image Viewer — view, compare and convert images, open .qtivp photo albums"
+pkgdesc="Qt Image Viewer — view, compare and convert images; includes qtivp album tool and the open .qtivp format"
 arch=('x86_64')
-url="https://example.invalid/qtiv"
+url="https://github.com/i114rk/QTIV"
 license=('MIT')
 depends=('qt6-base' 'qt6-imageformats' 'qt6-svg' 'hicolor-icon-theme'
          'shared-mime-info' 'desktop-file-utils')

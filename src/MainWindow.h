@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QVector>
 
 class QAction;
 class QActionGroup;
@@ -21,6 +22,11 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
     bool loadPaths(const QStringList& paths);
+
+    int playlistCount() const;
+    int currentIndex() const;
+    // Открывает режим сравнения; пустой список — пара «текущее + следующее».
+    void showCompare(const QVector<int>& indices = {});
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
@@ -48,6 +54,7 @@ private:
     void updateNavState();
     void updateInfoBar();
     void retranslateUi();
+    void ensureCompareView(int panels);
 
     ImageStore* m_store = nullptr;
     QStackedWidget* m_stack = nullptr;

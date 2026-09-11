@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QComboBox>
+#include <QListWidget>
 #include <QtTest>
 
 #include <memory>
@@ -25,6 +26,7 @@ private slots:
     void initTestCase();
     void thumbnailActivationSwitchesPhoto();
     void compareModeOpens();
+    void compareThreePanels();
     void exportDialogFormatScope();
 
 private:
@@ -55,6 +57,16 @@ void TestGui::thumbnailActivationSwitchesPhoto()
 
     QVERIFY(QMetaObject::invokeMethod(strip, "indexActivated", Q_ARG(int, 0)));
     QCOMPARE(m_store->current(), 0);
+
+    // Настоящий клик мышью по миниатюре: полный путь виджет → сигнал → стор.
+    QListWidget* list = strip->findChild<QListWidget*>();
+    QVERIFY(list != nullptr);
+    const QRect rect = list->visualItemRect(list->item(1));
+    QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, rect.center());
+    QCOMPARE(m_store->current(), 1);
+    QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      list->visualItemRect(list->item(0)).center());
+    QCOMPARE(m_store->current(), 0);
 }
 
 void TestGui::compareModeOpens()
@@ -62,6 +74,29 @@ void TestGui::compareModeOpens()
     // Режим сравнения требует >= 2 фото и создаёт CompareView.
     QVERIFY(QMetaObject::invokeMethod(m_window.get(), "toggleCompare", Q_ARG(bool, true)));
     QVERIFY2(m_window->findChild<CompareView*>() != nullptr, "CompareView not created");
+    QVERIFY(QMetaObject::invokeMethod(m_window.get(), "toggleCompare", Q_ARG(bool, false)));
+}
+
+void TestGui::compareThreePanels()
+{
+    // qtiv -comp -n=3 album.qtivp: демо-альбом (4 фото) → 3 панели.
+    QVERIFY(m_window->loadPaths({srcPath("examples/demo.qtivp")}));
+    QCOMPARE(m_window->playlistCount(), 4);
+
+    m_window->showCompare({1, 3, 0});
+    CompareView* view = m_window->findChild<CompareView*>();
+    QVERIFY(view != nullptr);
+    QCOMPARE(view->panelCount(), 3);
+    QCOMPARE(view->panelIndex(0), 1);
+    QCOMPARE(view->panelIndex(1), 3);
+    QCOMPARE(view->panelIndex(2), 0);
+
+    // Больше панелей, чем фото (8 > 4) — ограничивается количеством фото.
+    m_window->showCompare({0, 1, 2, 3, 0, 1, 2, 3});
+    view = m_window->findChild<CompareView*>();
+    QVERIFY(view != nullptr);
+    QCOMPARE(view->panelCount(), 4);
+
     QVERIFY(QMetaObject::invokeMethod(m_window.get(), "toggleCompare", Q_ARG(bool, false)));
 }
 

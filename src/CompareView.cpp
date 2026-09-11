@@ -12,206 +12,266 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-CompareView::CompareView(ImageStore* store, QWidget* parent)
+CompareView::CompareView(ImageStore* store, int panels, QWidget* parent)
     : QWidget(parent)
     , m_store(store)
 {
     setAutoFillBackground(true);
 
-    const int current = store->current();
-    const int count = store->count();
-    m_leftIndex = current >= 0 ? current : (count > 0 ? 0 : -1);
-    m_rightIndex = count > 1 ? (current + 1) % count : m_leftIndex;
-
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(8, 8, 8, 8);
     rootLayout->setSpacing(8);
 
-    // --- Тулбар выбора изображений -------------------------------------
-    auto* bar = new QHBoxLayout;
-    m_leftCombo = new QComboBox(this);
-    m_leftCombo->setMinimumWidth(200);
-    m_leftCombo->setToolTip(i18n::s("Image on the left (A)"));
-    m_leftCombo->installEventFilter(this);
-    m_rightCombo = new QComboBox(this);
-    m_rightCombo->setMinimumWidth(200);
-    m_rightCombo->setToolTip(i18n::s("Image on the right (D)"));
-    m_rightCombo->installEventFilter(this);
+    // --- Тулбар: комбобоксы панелей + кнопки ---------------------------
+    m_barLayout = new QHBoxLayout;
+    m_barLayout->addStretch(1);
 
     m_syncButton = new QPushButton(this);
     m_syncButton->setCheckable(true);
     m_syncButton->setChecked(m_syncEnabled);
     connect(m_syncButton, &QPushButton::toggled, this, &CompareView::setSyncEnabled);
 
+    m_addButton = new QPushButton(this);
+    connect(m_addButton, &QPushButton::clicked, this,
+            [this] { setPanelCount(m_panels.size() + 1); });
+
+    m_removeButton = new QPushButton(this);
+    connect(m_removeButton, &QPushButton::clicked, this,
+            [this] { setPanelCount(m_panels.size() - 1); });
+
     m_closeButton = new QPushButton(this);
     connect(m_closeButton, &QPushButton::clicked, this, &CompareView::closed);
 
-    bar->addWidget(m_leftCombo, 1);
-    bar->addSpacing(6);
-    bar->addWidget(m_syncButton);
-    bar->addSpacing(6);
-    bar->addWidget(m_rightCombo, 1);
-    bar->addSpacing(6);
-    bar->addWidget(m_closeButton);
-    rootLayout->addLayout(bar);
+    m_barLayout->addWidget(m_syncButton);
+    m_barLayout->addSpacing(6);
+    m_barLayout->addWidget(m_addButton);
+    m_barLayout->addSpacing(6);
+    m_barLayout->addWidget(m_removeButton);
+    m_barLayout->addSpacing(12);
+    m_barLayout->addWidget(m_closeButton);
+    rootLayout->addLayout(m_barLayout);
 
     // --- Панели ---------------------------------------------------------
-    auto* splitter = new QSplitter(Qt::Horizontal, this);
-    m_left = new ImageView(this);
-    m_right = new ImageView(this);
-    m_left->setSyncEnabled(m_syncEnabled);
-    m_right->setSyncEnabled(m_syncEnabled);
-    splitter->addWidget(m_left);
-    splitter->addWidget(m_right);
-    splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 1);
-    splitter->setChildrenCollapsible(false);
-    rootLayout->addWidget(splitter, 1);
+    m_splitter = new QSplitter(Qt::Horizontal, this);
+    m_splitter->setChildrenCollapsible(false);
+    rootLayout->addWidget(m_splitter, 1);
 
     m_infoLabel = new QLabel(this);
     m_infoLabel->setAlignment(Qt::AlignHCenter);
     rootLayout->addWidget(m_infoLabel);
 
-    populateCombo(m_leftCombo, m_leftIndex);
-    populateCombo(m_rightCombo, m_rightIndex);
-
-    connect(m_leftCombo, &QComboBox::currentIndexChanged, this, [this](int i) {
-        setLeftIndex(m_leftCombo->itemData(i).toInt());
-    });
-    connect(m_rightCombo, &QComboBox::currentIndexChanged, this, [this](int i) {
-        setRightIndex(m_rightCombo->itemData(i).toInt());
-    });
-
-    connect(m_left, &ImageView::syncChanged, this, [this](const ImageView::SyncState& s) {
-        if (m_syncEnabled)
-            m_right->applySync(s);
-    });
-    connect(m_right, &ImageView::syncChanged, this, [this](const ImageView::SyncState& s) {
-        if (m_syncEnabled)
-            m_left->applySync(s);
-    });
-    connect(m_left, &ImageView::zoomChanged, this, [this] { updateInfo(); });
-    connect(m_right, &ImageView::zoomChanged, this, [this] { updateInfo(); });
-
-    updatePanel(0);
-    updatePanel(1);
-    updateInfo();
+    setPanelCount(panels);
     updateSyncButtons();
     retranslateUi();
 }
 
-void CompareView::setLeftIndex(int index)
+int CompareView::panelIndex(int panel) const
 {
-    if (index < 0 || index >= m_store->count() || index == m_leftIndex)
-        return;
-    m_leftIndex = index;
-    if (m_leftCombo->currentData().toInt() != index)
-        populateCombo(m_leftCombo, index);
-    updatePanel(0);
-    if (m_syncEnabled)
-        applySyncFrom(m_right);
+    if (panel < 0 || panel >= m_panels.size())
+        return -1;
+    return m_panels[panel].imageIndex;
 }
 
-void CompareView::setRightIndex(int index)
+void CompareView::setPanelIndex(int panel, int index)
 {
-    if (index < 0 || index >= m_store->count() || index == m_rightIndex)
+    if (panel < 0 || panel >= m_panels.size())
         return;
-    m_rightIndex = index;
-    if (m_rightCombo->currentData().toInt() != index)
-        populateCombo(m_rightCombo, index);
-    updatePanel(1);
-    if (m_syncEnabled)
-        applySyncFrom(m_right);
+    Panel& p = m_panels[panel];
+    if (index < 0 || index >= m_store->count() || index == p.imageIndex)
+        return;
+    p.imageIndex = index;
+    if (p.combo->currentData().toInt() != index)
+        populateCombo(p);
+    updatePanel(p);
+    if (m_syncEnabled && !m_panels.isEmpty())
+        applySyncFrom(m_panels.first().view);
+}
+
+void CompareView::setIndices(const QVector<int>& indices)
+{
+    if (indices.isEmpty())
+        return;
+    setPanelCount(indices.size());
+    for (int i = 0; i < indices.size() && i < m_panels.size(); ++i)
+        setPanelIndex(i, indices[i]);
+    if (m_syncEnabled && !m_panels.isEmpty())
+        applySyncFrom(m_panels.first().view);
+}
+
+void CompareView::setPanelCount(int count)
+{
+    const int n = m_store->count();
+    count = qMax(2, count);
+    if (n > 1)
+        count = qMin(count, n);
+    count = qMin(count, kMaxPanelCount);
+
+    while (m_panels.size() < count) {
+        Panel p;
+        p.imageIndex = defaultImageIndex();
+        p.view = new ImageView(this);
+        p.combo = new QComboBox(this);
+        p.combo->setMinimumWidth(150);
+        p.combo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        p.combo->installEventFilter(this);
+        p.view->setSyncEnabled(m_syncEnabled);
+
+        connect(p.combo, &QComboBox::currentIndexChanged, this,
+                [this, combo = p.combo](int row) {
+                    for (int i = 0; i < m_panels.size(); ++i) {
+                        if (m_panels[i].combo == combo) {
+                            setPanelIndex(i, combo->itemData(row).toInt());
+                            break;
+                        }
+                    }
+                });
+        connect(p.view, &ImageView::syncChanged, this,
+                [this, source = p.view](const ImageView::SyncState& s) {
+                    if (m_syncEnabled)
+                        applySyncToOthers(source, s);
+                });
+        connect(p.view, &ImageView::zoomChanged, this, [this] { updateInfo(); });
+
+        m_splitter->addWidget(p.view);
+        m_barLayout->insertWidget(m_panels.size(), p.combo, 1);
+        m_panels.append(p);
+    }
+    while (m_panels.size() > count) {
+        const Panel p = m_panels.takeLast();
+        p.combo->deleteLater();
+        p.view->deleteLater();
+    }
+
+    for (int i = 0; i < m_splitter->count(); ++i)
+        m_splitter->setStretchFactor(i, 1);
+
+    m_addButton->setEnabled(m_panels.size() < kMaxPanelCount && m_panels.size() < n);
+    m_removeButton->setEnabled(m_panels.size() > 2);
+    for (Panel& p : m_panels) {
+        populateCombo(p);
+        updatePanel(p);
+    }
+    updateInfo();
+}
+
+int CompareView::defaultImageIndex() const
+{
+    // Первое фото плейлиста, которого ещё нет ни на одной панели.
+    const int n = m_store->count();
+    if (n <= 0)
+        return -1;
+    const int start = qMax(0, m_store->current()) + m_panels.size();
+    for (int step = 0; step < n; ++step) {
+        const int candidate = (start + step) % n;
+        bool used = false;
+        for (const Panel& p : m_panels) {
+            if (p.imageIndex == candidate) {
+                used = true;
+                break;
+            }
+        }
+        if (!used)
+            return candidate;
+    }
+    return start % n;
 }
 
 void CompareView::setSyncEnabled(bool on)
 {
     m_syncEnabled = on;
-    m_left->setSyncEnabled(on);
-    m_right->setSyncEnabled(on);
+    for (Panel& p : m_panels)
+        p.view->setSyncEnabled(on);
     m_syncButton->setChecked(on);
-    if (on)
-        applySyncFrom(m_left);
+    if (on && !m_panels.isEmpty())
+        applySyncFrom(m_panels.first().view);
     updateSyncButtons();
 }
 
 void CompareView::retranslateUi()
 {
-    m_leftCombo->setToolTip(i18n::s("Image on the left (A)"));
-    m_rightCombo->setToolTip(i18n::s("Image on the right (D)"));
+    m_addButton->setText(i18n::s("+ panel"));
+    m_addButton->setToolTip(i18n::s("Add a comparison panel"));
+    m_removeButton->setText(i18n::s("\xE2\x88\x92 panel"));
+    m_removeButton->setToolTip(i18n::s("Remove the last comparison panel"));
     m_closeButton->setText(i18n::s("Close"));
+    m_syncButton->setToolTip(i18n::s("Synchronize zoom and panning between panels (S)"));
+    for (Panel& p : m_panels)
+        p.combo->setToolTip(i18n::s("Image for this panel"));
     updateSyncButtons();
-    m_left->setBlankText(i18n::s("Image could not be decoded"));
-    m_right->setBlankText(i18n::s("Image could not be decoded"));
-    if (m_leftIndex >= 0)
-        updatePanel(0);
-    if (m_rightIndex >= 0)
-        updatePanel(1);
+    for (Panel& p : m_panels)
+        updatePanel(p);
     updateInfo();
 }
 
 void CompareView::updateSyncButtons()
 {
     m_syncButton->setText(m_syncEnabled ? i18n::s("Sync: on") : i18n::s("Sync: off"));
-    m_syncButton->setToolTip(i18n::s("Synchronize zoom and panning between panels (S)"));
 }
 
-void CompareView::populateCombo(QComboBox* combo, int currentIndex)
+void CompareView::populateCombo(Panel& panel)
 {
-    combo->blockSignals(true);
-    combo->clear();
+    panel.combo->blockSignals(true);
+    panel.combo->clear();
     for (int i = 0; i < m_store->count(); ++i) {
         const ImageStore::Item& it = m_store->item(i);
-        combo->addItem(QStringLiteral("%1 — %2").arg(i + 1).arg(it.displayName), i);
+        panel.combo->addItem(QStringLiteral("%1 — %2").arg(i + 1).arg(it.displayName), i);
     }
-    const int pos = combo->findData(currentIndex);
+    const int pos = panel.combo->findData(panel.imageIndex);
     if (pos >= 0)
-        combo->setCurrentIndex(pos);
-    combo->blockSignals(false);
+        panel.combo->setCurrentIndex(pos);
+    panel.combo->blockSignals(false);
 }
 
-void CompareView::updatePanel(int side)
+void CompareView::updatePanel(Panel& panel)
 {
-    const int index = side == 0 ? m_leftIndex : m_rightIndex;
-    ImageView* view = side == 0 ? m_left : m_right;
-    if (index < 0 || index >= m_store->count()) {
-        view->clear();
-        view->setBlankText(i18n::s("Nothing to show"));
+    if (panel.imageIndex < 0 || panel.imageIndex >= m_store->count()) {
+        panel.view->clear();
+        panel.view->setBlankText(i18n::s("Nothing to show"));
+        updateInfo();
         return;
     }
-    const QImage img = m_store->image(index);
+    const QImage img = m_store->image(panel.imageIndex);
     if (img.isNull()) {
-        view->clear();
-        view->setBlankText(i18n::s("Image could not be decoded"));
+        panel.view->clear();
+        panel.view->setBlankText(i18n::s("Image could not be decoded"));
     } else {
-        view->setImage(img);
+        panel.view->setImage(img);
     }
     updateInfo();
 }
 
 void CompareView::updateInfo()
 {
-    auto describe = [this](int index, ImageView* view) {
-        if (index < 0 || index >= m_store->count())
-            return i18n::s("—");
-        const ImageStore::Item& it = m_store->item(index);
-        const int zoom = qRound(view->scale() * 100.0);
-        return QStringLiteral("%1  ·  %2×%3  ·  %4%")
-            .arg(it.displayName)
-            .arg(it.width)
-            .arg(it.height)
-            .arg(zoom);
-    };
-    m_infoLabel->setText(QStringLiteral("%1   |   %2")
-                             .arg(describe(m_leftIndex, m_left), describe(m_rightIndex, m_right)));
+    QStringList parts;
+    for (const Panel& p : m_panels) {
+        if (p.imageIndex < 0 || p.imageIndex >= m_store->count()) {
+            parts << i18n::s("—");
+            continue;
+        }
+        const ImageStore::Item& it = m_store->item(p.imageIndex);
+        const int zoom = qRound(p.view->scale() * 100.0);
+        parts << QStringLiteral("%1  ·  %2×%3  ·  %4%")
+                     .arg(it.displayName)
+                     .arg(it.width)
+                     .arg(it.height)
+                     .arg(zoom);
+    }
+    m_infoLabel->setText(parts.join(QStringLiteral("   |   ")));
 }
 
 void CompareView::applySyncFrom(ImageView* source)
 {
-    if (source == m_left)
-        m_right->applySync(m_left->syncState());
-    else
-        m_left->applySync(m_right->syncState());
+    if (!source)
+        return;
+    applySyncToOthers(source, source->syncState());
+}
+
+void CompareView::applySyncToOthers(ImageView* source, const ImageView::SyncState& state)
+{
+    for (Panel& p : m_panels) {
+        if (p.view != source)
+            p.view->applySync(state);
+    }
 }
 
 void CompareView::keyPressEvent(QKeyEvent* event)
@@ -221,20 +281,6 @@ void CompareView::keyPressEvent(QKeyEvent* event)
         event->accept();
         emit closed();
         return;
-    case Qt::Key_A:
-        if (event->modifiers() == Qt::NoModifier) {
-            m_leftCombo->showPopup();
-            event->accept();
-            return;
-        }
-        break;
-    case Qt::Key_D:
-        if (event->modifiers() == Qt::NoModifier) {
-            m_rightCombo->showPopup();
-            event->accept();
-            return;
-        }
-        break;
     case Qt::Key_S:
         if (event->modifiers() == Qt::NoModifier) {
             setSyncEnabled(!m_syncEnabled);
@@ -244,23 +290,23 @@ void CompareView::keyPressEvent(QKeyEvent* event)
         break;
     case Qt::Key_Plus:
     case Qt::Key_Equal:
-        m_left->zoomIn();
-        m_right->zoomIn();
+        for (Panel& p : m_panels)
+            p.view->zoomIn();
         event->accept();
         return;
     case Qt::Key_Minus:
-        m_left->zoomOut();
-        m_right->zoomOut();
+        for (Panel& p : m_panels)
+            p.view->zoomOut();
         event->accept();
         return;
     case Qt::Key_0:
-        m_left->fitToWindow();
-        m_right->fitToWindow();
+        for (Panel& p : m_panels)
+            p.view->fitToWindow();
         event->accept();
         return;
     case Qt::Key_1:
-        m_left->actualSize();
-        m_right->actualSize();
+        for (Panel& p : m_panels)
+            p.view->actualSize();
         event->accept();
         return;
     default:
@@ -272,9 +318,13 @@ void CompareView::keyPressEvent(QKeyEvent* event)
 bool CompareView::eventFilter(QObject* obj, QEvent* event)
 {
     // Колесо над комбобоксами не должно случайно менять выбранное изображение.
-    if ((obj == m_leftCombo || obj == m_rightCombo) && event->type() == QEvent::Wheel) {
-        event->ignore();
-        return true;
+    if (event->type() == QEvent::Wheel) {
+        for (const Panel& p : m_panels) {
+            if (obj == p.combo) {
+                event->ignore();
+                return true;
+            }
+        }
     }
     return QWidget::eventFilter(obj, event);
 }
