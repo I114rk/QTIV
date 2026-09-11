@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-qtivp">
+    <comment>QTIV photo album</comment>
+    <comment xml:lang="ru">Фотоальбом QTIV</comment>
+    <glob-deleteall/>
+    <glob pattern="*.qtivp"/>
+    <magic priority="80">
+      <match type="string" offset="0" value="QTIVP1"/>
+    </magic>
+  </mime-type>
+</mime-info>

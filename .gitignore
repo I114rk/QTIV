@@ -1,0 +1,5 @@
+build/
+.qwen/
+packaging/src/
+packaging/pkg/
+packaging/*.pkg.tar.*

@@ -1,0 +1,35 @@
+# Maintainer: QTIV project
+# Сборка пакета:  cd packaging && makepkg -si
+# (в репозитории должен быть хотя бы один git-коммит — makepkg клонирует его)
+
+pkgname=qtiv
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Qt Image Viewer — view, compare and convert images, open .qtivp photo albums"
+arch=('x86_64')
+url="https://example.invalid/qtiv"
+license=('MIT')
+depends=('qt6-base' 'qt6-imageformats' 'qt6-svg' 'hicolor-icon-theme'
+         'shared-mime-info' 'desktop-file-utils')
+makedepends=('cmake' 'ninja' 'git')
+checkdepends=('python')
+install=qtiv.install
+source=("qtiv::git+file://${startdir%/packaging}")
+sha256sums=('SKIP')
+
+build() {
+    cmake -B build -S "$srcdir/qtiv" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+check() {
+    ctest --test-dir "$srcdir/qtiv/build" --output-on-failure
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install "$srcdir/qtiv/build"
+    install -Dm644 "$srcdir/qtiv/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname/"
+    install -Dm644 "$srcdir/qtiv/README.md" -t "$pkgdir/usr/share/doc/$pkgname/"
+}

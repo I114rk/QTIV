@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=QTIV
+GenericName=Image Viewer
+GenericName[ru]=Просмотр изображений
+Comment=View, compare and convert images
+Comment[ru]=Просмотр, сравнение и конвертация изображений
+Exec=qtiv %U
+TryExec=qtiv
+Icon=qtiv
+MimeType=image/jpeg;image/png;image/webp;image/avif;image/bmp;image/gif;image/tiff;image/heic;application/x-qtivp;
+Categories=Graphics;Viewer;Photography;
+Keywords=image;viewer;photo;picture;graphics;compare;convert;qtiv;qtivp;
+StartupWMClass=qtiv
+Terminal=false
