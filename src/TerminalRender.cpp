@@ -13,10 +13,18 @@
 #include <cstdio>
 #include <cstring>
 
-#include <poll.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-#include <unistd.h>
+#if defined(_WIN32)
+#  define WIN32_LEAN_AND_MEAN
+#  define NOMINMAX
+#  include <windows.h>
+#  include <io.h>
+#  include <unistd.h>
+#else
+#  include <poll.h>
+#  include <sys/ioctl.h>
+#  include <termios.h>
+#  include <unistd.h>
+#endif
 
 namespace {
 
@@ -45,6 +53,13 @@ QImage flatten(const QImage& image)
 
 QByteArray queryTerminal(const QByteArray& query, int timeoutMs)
 {
+#if defined(_WIN32)
+    // На Windows активные запросы к терминалу не выполняются: возможности
+    // определяются по переменным окружения (WT_SESSION, TERM и т.п.).
+    Q_UNUSED(query);
+    Q_UNUSED(timeoutMs);
+    return {};
+#else
     if (isatty(STDIN_FILENO) != 1 || isatty(STDOUT_FILENO) != 1)
         return {};
 
@@ -87,6 +102,7 @@ QByteArray queryTerminal(const QByteArray& query, int timeoutMs)
 
     tcsetattr(STDIN_FILENO, TCSANOW, &orig);
     return response;
+#endif // !_WIN32
 }
 
 // --- Kitty graphics --------------------------------------------------------
@@ -484,6 +500,13 @@ Caps detectCaps()
     Caps caps;
     caps.isTty = isatty(STDOUT_FILENO) == 1;
 
+#if defined(_WIN32)
+    if (CONSOLE_SCREEN_BUFFER_INFO info{};
+        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info)) {
+        caps.cols = qMax(1, int(info.dwSize.X));
+        caps.rows = qMax(1, int(info.srWindow.Bottom - info.srWindow.Top) + 1);
+    }
+#else
     winsize ws{};
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0) {
         caps.cols = int(ws.ws_col);
@@ -493,13 +516,17 @@ Caps detectCaps()
             caps.pxHeight = int(ws.ws_ypixel);
         }
     }
+#endif
 
     const QByteArray term = qgetenv("TERM");
     const QByteArray colorterm = qgetenv("COLORTERM");
-    caps.truecolor = colorterm.contains("truecolor") || colorterm.contains("24bit");
-    caps.color256 = caps.truecolor || term.contains("256color") || term.contains("kitty")
-        || term.contains("alacritty") || term.contains("ghostty") || term.contains("wezterm")
-        || term.contains("foot");
+    // Windows Terminal всегда поддерживает truecolor.
+    const bool windowsTerminal = !qgetenv("WT_SESSION").isEmpty();
+    caps.truecolor = windowsTerminal || colorterm.contains("truecolor")
+        || colorterm.contains("24bit");
+    caps.color256 = caps.truecolor || windowsTerminal || term.contains("256color")
+        || term.contains("kitty") || term.contains("alacritty") || term.contains("ghostty")
+        || term.contains("wezterm") || term.contains("foot");
 
     if (!caps.isTty)
         return caps;

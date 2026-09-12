@@ -3,7 +3,7 @@
 # (в репозитории должен быть хотя бы один git-коммит — makepkg клонирует его)
 
 pkgname=qtiv
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc="Qt Image Viewer — view, compare and convert images; includes the qtivp album tool, the qtivh help viewer and the open .qtivp format"
 arch=('x86_64')

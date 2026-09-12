@@ -1,7 +1,10 @@
 build/
+build-win/
 .qwen/
 packaging/src/
 packaging/pkg/
 packaging/qtiv/
 packaging/*.pkg.tar.*
+packaging/*.exe
+packaging/*.deb
 main.save

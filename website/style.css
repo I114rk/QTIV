@@ -1,0 +1,236 @@
+/* QTIV — страница проекта. Без фреймворков: палитра и отступы руками. */
+
+:root {
+    --bg: #14161a;
+    --panel: #1b1d23;
+    --border: #2a2e38;
+    --text: #dfe3ec;
+    --muted: #8b93a5;
+    --accent: #4f8cff;
+    --code-bg: #101216;
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: dark; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, kbd, pre, .mono, h1, h2, nav {
+    font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 0.9em;
+    border-radius: 2px;
+}
+
+kbd {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    padding: 0 6px;
+    font-size: 0.85em;
+    border-radius: 2px;
+}
+
+/* --- шапка --- */
+
+header {
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.head img { display: block; }
+
+h1 {
+    font-size: 22px;
+    letter-spacing: 1px;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.tagline {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+nav {
+    margin-left: auto;
+    font-size: 13px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+nav a { color: var(--muted); }
+nav a:hover { color: var(--text); text-decoration: none; }
+
+/* --- секции --- */
+
+section { margin-top: 64px; }
+
+.intro { margin-top: 48px; }
+.intro p { margin: 0 0 14px; }
+
+h2 {
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    margin: 0 0 22px;
+}
+
+h2 span {
+    color: var(--accent);
+    margin-right: 10px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+
+/* --- картинки --- */
+
+figure { margin: 0 0 28px; }
+
+figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+}
+
+figcaption {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* --- таблица скачивания --- */
+
+table.dl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+table.dl th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: normal;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+table.dl th, table.dl td {
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+table.dl .mono { font-size: 13.5px; white-space: nowrap; }
+table.dl .size { color: var(--muted); width: 70px; }
+table.dl .size-h { width: 70px; }
+
+.btn {
+    display: inline-block;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 4px 14px;
+    border-radius: 2px;
+    font-size: 13.5px;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background: var(--accent);
+    color: #0d0f13;
+    text-decoration: none;
+}
+
+.btn.plain { border-color: var(--border); color: var(--muted); }
+.btn.plain:hover { background: var(--border); color: var(--text); }
+
+/* --- списки и код --- */
+
+ul.feat { margin: 0; padding: 0; list-style: none; }
+ul.feat li { padding: 9px 0 9px 18px; border-bottom: 1px solid var(--border); position: relative; }
+ul.feat li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+
+pre.term { margin: 18px 0; }
+
+pre .c { color: var(--muted); }
+
+/* ASCII-арт: не растягиваем, красим потише */
+pre.art {
+    color: #9aa3b5;
+    line-height: 1.15;
+    font-size: 12.5px;
+    max-width: 460px;
+}
+
+pre.art .artbody { color: #b5bfd2; }
+
+/* --- футер --- */
+
+footer {
+    margin-top: 90px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 14px;
+}
+
+footer .wrap { padding-top: 22px; padding-bottom: 30px; }
+footer p { margin: 0 0 6px; }
+
+@media (max-width: 640px) {
+    nav { margin-left: 0; width: 100%; }
+    .head { flex-wrap: wrap; }
+    table.dl .size, table.dl .size-h { display: none; }
+    table.dl .mono { white-space: normal; word-break: break-all; }
+}
