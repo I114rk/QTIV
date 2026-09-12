@@ -11,6 +11,7 @@ class QSpinBox;
 class QStackedWidget;
 class QToolBar;
 class CompareView;
+class HelpWindow;
 class ImageStore;
 class ImageView;
 class ThumbnailStrip;
@@ -43,6 +44,7 @@ private slots:
     void toggleCompare(bool on);
     void toggleFullscreen();
     void showSpec();
+    void showHelp();
     void changeLanguage();
 
 private:
@@ -61,12 +63,14 @@ private:
     ImageView* m_view = nullptr;
     ThumbnailStrip* m_strip = nullptr;
     CompareView* m_compare = nullptr;
+    HelpWindow* m_help = nullptr;
 
     QAction* m_openAction = nullptr;
     QAction* m_openAlbumAction = nullptr;
     QAction* m_extractAction = nullptr;
     QAction* m_exportCurrentAction = nullptr;
     QAction* m_exportPlaylistAction = nullptr;
+    QAction* m_helpAction = nullptr;
     QAction* m_quitAction = nullptr;
     QAction* m_prevAction = nullptr;
     QAction* m_nextAction = nullptr;

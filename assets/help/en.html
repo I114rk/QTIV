@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: sans-serif; color: #dfe3ec; }
+  h1 { font-size: 22px; color: #4f8cff; }
+  h2 { font-size: 17px; color: #7db1ff; margin-top: 22px; }
+  h3 { font-size: 14px; color: #9aa1b2; }
+  code, pre { font-family: monospace; color: #8fd3a7; }
+  pre { background-color: #22252c; padding: 8px; }
+  table { border-collapse: collapse; }
+  td, th { padding: 3px 10px; border: 1px solid #3a3f4b; }
+  th { background-color: #262a33; }
+  a { color: #4f8cff; }
+</style>
+</head>
+<body>
+
+<h1>QTIV — Qt Image Viewer</h1>
+<p>An image viewer: browse, <b>compare</b>, zoom, <b>convert</b> and store
+several photos in a single file of the open <b>.qtivp</b> format. Russian
+and English interface, dark theme.</p>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#view">Viewing and navigation</a></li>
+<li><a href="#compare">Comparing photos</a></li>
+<li><a href="#convert">Conversion and albums</a></li>
+<li><a href="#console">Terminal: qtiv -c and other commands</a></li>
+<li><a href="#qtivp-format">The .qtivp format</a></li>
+<li><a href="#qtivp-tool">The qtivp tool</a></li>
+<li><a href="#keys">Keyboard shortcuts</a></li>
+</ul>
+
+<a name="view"></a>
+<h2>Viewing and navigation</h2>
+<p>Open a photo with <b>Ctrl+O</b>, by double-clicking it in your file
+manager, or by dropping files onto the window. Opening a single file makes
+its folder the <b>playlist</b> (like in media players): the <b>←/→</b> keys
+flip through every photo in that folder. Selecting several files makes the
+playlist exactly those files.</p>
+<p>Zoom with the mouse wheel (towards the cursor), up to 64×. Drag to pan.
+Double-click toggles “fit to window” / “1:1”. At the bottom there is the
+<b>thumbnail strip</b>: clicking a thumbnail or using arrows inside the
+strip switches photos (press <b>T</b> to hide or show it); when the
+thumbnails do not fit, the strip is scrolled with the mouse wheel.
+Thumbnails are grouped by source file: entries of one <b>.qtivp</b> album
+form a single group, regular photos are separated by a line. Transparency is
+shown over a checkerboard, EXIF orientation is applied automatically.</p>
+<p>Supported formats: JPG, PNG, WebP, AVIF, BMP, GIF, TIFF, HEIC and about
+30 more.</p>
+
+<a name="compare"></a>
+<h2>Comparing photos</h2>
+<p>Press <b>F12</b> (or the <b>C</b> key, the toolbar button, or the
+“View → Compare” menu item) — two panels open side by side. At least two
+photos in the playlist are required.</p>
+<ul>
+<li><b>Choosing photos</b> — a drop-down list above each panel.</li>
+<li><b>+ panel / − panel</b> — from 2 to 8 images at once.</li>
+<li><b>Sync: on</b> (the <b>S</b> key) — synchronized zoom and panning
+across all panels: handy for comparing fragments pixel by pixel.</li>
+<li>The splitter between panels is draggable. <b>Esc</b> closes compare mode.</li>
+</ul>
+<p>From the terminal — straight into compare mode:</p>
+<pre>qtiv -comp before.jpg after.jpg      # compare exactly these photos
+qtiv -comp -n=3 album.qtivp          # 3 photos from an album
+qtiv -comp -n=4 ~/Photos/            # 4 photos from a folder</pre>
+
+<a name="convert"></a>
+<h2>Conversion and albums</h2>
+<p><b>Ctrl+S</b> converts the current photo (PNG / JPEG / WebP / AVIF /
+BMP, with a quality setting). <b>Ctrl+Shift+S</b> exports the whole
+playlist: either every file into the chosen format, or everything into a
+single <b>.qtivp</b> album (photos are stored <b>without re-encoding</b> —
+byte for byte, no quality loss).</p>
+<p><b>Ctrl+Shift+E</b> extracts the opened album into a folder.
+<b>Ctrl+Shift+O</b> opens a .qtivp album as a playlist: every photo of the
+album becomes a separate item.</p>
+
+<a name="console"></a>
+<h2>Terminal: qtiv -c and other commands</h2>
+<p><b>qtiv -c file.png</b> shows the image <b>right in the terminal</b>.
+Terminal capabilities are detected automatically:</p>
+<ul>
+<li><b>kitty graphics</b> — a real pixel-perfect image: kitty, WezTerm,
+Ghostty, Konsole;</li>
+<li><b>sixel</b> — foot, xterm, mintty and others;</li>
+<li><b>halfblocks ▀</b> — colored “pixel art” from characters: almost any
+modern terminal (this mode is used inside tmux);</li>
+<li><b>ASCII art</b> — the simplest terminal, or when output goes to a
+file or a pipe.</li>
+</ul>
+<p>The mode can be forced: <code>qtiv -c --kitty f.png</code>,
+<code>--sixel</code>, <code>--half</code>, <code>--ascii</code>.
+Other commands:</p>
+<pre>qtiv --info FILE          # JSON: dimensions, format or album contents
+qtiv --pack OUT FILES...  # pack photos into a .qtivp album
+qtiv -comp A B            # GUI straight into compare mode
+qtiv -comp -n=K FILE      # GUI: compare K photos of an album/folder</pre>
+
+<a name="qtivp-format"></a>
+<h2>The .qtivp format</h2>
+<p><b>.qtivp</b> (QT Image Viewer Photo) is an <b>open</b> container format
+for storing several photos in one file. The specification is dedicated to
+the public domain (<b>CC0</b>): anyone may implement it in their software,
+free of charge and without permission. The full document:
+<code>docs/QTIVP-SPEC.md</code> in the QTIV repository.</p>
+<p>File structure (little-endian):</p>
+<ul>
+<li>a 16-byte header: the <code>QTIVP1\0\0</code> signature, version,
+entry count;</li>
+<li>an index: for every photo — name (UTF-8), MIME type, dimensions,
+offset, compression flag, <b>CRC32</b>;</li>
+<li>data: the original file bytes (a JPEG is stored as is), optionally
+compressed with zlib.</li>
+</ul>
+<p>Photos are stored <b>without re-encoding</b>. The integrity of every
+entry is verified with a CRC-32 checksum (the zlib polynomial). An
+independent Python implementation is part of the project tests
+(<code>tests/qtivp_check.py</code>) — the format is verified in both
+directions.</p>
+
+<a name="qtivp-tool"></a>
+<h2>The qtivp tool</h2>
+<p>A separate console utility for working with albums — packing and
+unpacking without the GUI:</p>
+<pre>qtivp -compress photos.qtivp photo1.png photo2.png ... photo100.png
+qtivp -compress photos.qtivp photo*.*          # the shell expands the glob
+qtivp -compress vacation.qtivp ~/Pictures/sea/ # a whole folder
+qtivp -extract photos.qtivp ~/out              # extract byte for byte
+qtivp -list photos.qtivp                       # album contents
+qtivp -test photos.qtivp                       # verify CRC of every entry</pre>
+<p><b>-compress</b> accepts images, ready .qtivp albums (their entries are
+merged) and whole folders. zlib compression is applied only when it
+actually shrinks the data. <b>-extract</b> restores files byte for byte;
+existing files are never overwritten — a -1, -2… suffix is added instead.</p>
+
+<a name="keys"></a>
+<h2>Keyboard shortcuts</h2>
+<table>
+<tr><th>Keys</th><th>Action</th></tr>
+<tr><td>← / →, PgUp / PgDn</td><td>previous / next photo</td></tr>
+<tr><td>Home / End</td><td>first / last photo</td></tr>
+<tr><td>mouse wheel</td><td>zoom towards the cursor</td></tr>
+<tr><td>+ / −</td><td>zoom</td></tr>
+<tr><td>F</td><td>fit to window</td></tr>
+<tr><td>Ctrl+1</td><td>actual size (1:1)</td></tr>
+<tr><td>double click</td><td>toggle “fit” / “1:1”</td></tr>
+<tr><td>F12 or C</td><td>compare mode</td></tr>
+<tr><td>+ panel / − panel</td><td>add / remove a compare panel</td></tr>
+<tr><td>S</td><td>zoom sync (in compare mode)</td></tr>
+<tr><td>T</td><td>thumbnail strip</td></tr>
+<tr><td>wheel over the strip</td><td>scroll the thumbnail strip</td></tr>
+<tr><td>F11</td><td>fullscreen</td></tr>
+<tr><td>F1</td><td>this guide</td></tr>
+<tr><td>Ctrl+O</td><td>open files</td></tr>
+<tr><td>Ctrl+Shift+O</td><td>open a .qtivp album</td></tr>
+<tr><td>Ctrl+S</td><td>convert the current photo</td></tr>
+<tr><td>Ctrl+Shift+S</td><td>export playlist / pack an album</td></tr>
+<tr><td>Ctrl+Shift+E</td><td>extract album to a folder</td></tr>
+<tr><td>Ctrl+Q</td><td>quit</td></tr>
+</table>
+
+<hr>
+<p>QTIV is an open project (MIT). The .qtivp specification is CC0.
+Questions and bug reports — in the project repository.</p>
+</body>
+</html>

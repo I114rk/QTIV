@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "CompareView.h"
 #include "ExportDialog.h"
+#include "HelpWindow.h"
 #include "ImageStore.h"
 #include "ImageView.h"
 #include "Locale.h"
@@ -254,6 +255,19 @@ void MainWindow::toggleFullscreen()
         showFullScreen();
 }
 
+void MainWindow::showHelp()
+{
+    if (!m_help) {
+        m_help = new HelpWindow(this);
+        connect(m_help, &HelpWindow::languageChanged, this, [this] {
+            retranslateUi();
+        });
+    }
+    m_help->show();
+    m_help->raise();
+    m_help->activateWindow();
+}
+
 void MainWindow::showSpec()
 {
     QMessageBox::information(
@@ -353,6 +367,9 @@ void MainWindow::createActions()
     m_specAction = new QAction(this);
     connect(m_specAction, &QAction::triggered, this, &MainWindow::showSpec);
 
+    m_helpAction = add("open.svg", QKeySequence::HelpContents);
+    connect(m_helpAction, &QAction::triggered, this, &MainWindow::showHelp);
+
     m_aboutAction = new QAction(this);
     connect(m_aboutAction, &QAction::triggered, this, [this] {
         QMessageBox::about(this, i18n::s("About QTIV"),
@@ -417,6 +434,7 @@ void MainWindow::createMenus()
         m_langMenu->addAction(a);
 
     m_helpMenu = menuBar()->addMenu(QString());
+    m_helpMenu->addAction(m_helpAction);
     m_helpMenu->addAction(m_specAction);
     m_helpMenu->addSeparator();
     m_helpMenu->addAction(m_aboutAction);
@@ -584,6 +602,8 @@ void MainWindow::retranslateUi()
     m_fullscreenAction->setText(i18n::s("&Fullscreen"));
 
     m_specAction->setText(i18n::s("QTIVP &format…"));
+    m_helpAction->setText(i18n::s("User &guide"));
+    m_helpAction->setStatusTip(i18n::s("Open the user guide (F1)"));
     m_aboutAction->setText(i18n::s("&About QTIV"));
     m_aboutQtAction->setText(i18n::s("About &Qt"));
 

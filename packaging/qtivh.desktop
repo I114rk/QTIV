@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=QTIV Help
+Name[ru]=Справка QTIV
+GenericName=User Guide
+GenericName[ru]=Руководство пользователя
+Comment=QTIV user guide: viewer, console mode, .qtivp format and the qtivp tool
+Comment[ru]=Руководство QTIV: просмотр, консольный режим, формат .qtivp и инструмент qtivp
+Exec=qtivh
+TryExec=qtivh
+Icon=qtiv
+Categories=Graphics;Viewer;Documentation;
+Keywords=help;guide;qtiv;qtivp;documentation;manual;
+StartupWMClass=qtivh
+Terminal=false

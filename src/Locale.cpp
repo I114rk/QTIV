@@ -29,6 +29,13 @@ const QHash<QString, QString>& ru()
         {QStringLiteral("Nothing to show"), QStringLiteral("Нечего показать")},
         {QStringLiteral("—"), QStringLiteral("—")},
 
+        // --- Руководство (qtivh) ------------------------------------------
+        {QStringLiteral("User guide"), QStringLiteral("Руководство пользователя")},
+        {QStringLiteral("Language:"), QStringLiteral("Язык:")},
+        {QStringLiteral("Help file not found: %1"), QStringLiteral("Файл руководства не найден: %1")},
+        {QStringLiteral("User &guide"), QStringLiteral("Руководство &пользователя")},
+        {QStringLiteral("Open the user guide (F1)"), QStringLiteral("Открыть руководство (F1)")},
+
         // --- Экспорт -------------------------------------------------------
         {QStringLiteral("Browse…"), QStringLiteral("Обзор…")},
         {QStringLiteral("Destination folder:"), QStringLiteral("Папка назначения:")},

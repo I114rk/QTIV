@@ -1,12 +1,14 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QListWidget>
+#include <QTextBrowser>
 #include <QtTest>
 
 #include <memory>
 
 #include "CompareView.h"
 #include "ExportDialog.h"
+#include "HelpWindow.h"
 #include "ImageStore.h"
 #include "MainWindow.h"
 #include "ThumbnailStrip.h"
@@ -27,7 +29,9 @@ private slots:
     void thumbnailActivationSwitchesPhoto();
     void compareModeOpens();
     void compareThreePanels();
+    void thumbnailGroupSeparators();
     void exportDialogFormatScope();
+    void helpWindowShowsContent();
 
 private:
     std::unique_ptr<MainWindow> m_window;
@@ -100,6 +104,31 @@ void TestGui::compareThreePanels()
     QVERIFY(QMetaObject::invokeMethod(m_window.get(), "toggleCompare", Q_ARG(bool, false)));
 }
 
+void TestGui::thumbnailGroupSeparators()
+{
+    // Записи одного альбома .qtivp — одна группа: разделитель только на
+    // границе альбома, между записями внутри — нет.
+    QVERIFY(m_window->loadPaths({srcPath("examples/demo.qtivp")}));
+    QCOMPARE(m_store->count(), 4);
+    ThumbnailStrip* strip = m_window->findChild<ThumbnailStrip*>();
+    QVERIFY(strip != nullptr);
+    QListWidget* list = strip->findChild<QListWidget*>();
+    QVERIFY(list != nullptr);
+    QCOMPARE(list->count(), 4);
+    QVERIFY(list->item(0)->data(ThumbnailStrip::kGroupStartRole).toBool());
+    for (int i = 1; i < list->count(); ++i) {
+        QVERIFY2(!list->item(i)->data(ThumbnailStrip::kGroupStartRole).toBool(),
+                 qPrintable(QStringLiteral("album entry %1 must not start a group").arg(i)));
+    }
+
+    // Обычные фото — каждый файл своя группа: разделитель между каждой.
+    QVERIFY(m_window->loadPaths({srcPath("examples/pattern.png"),
+                                 srcPath("examples/mandelbrot.jpg")}));
+    QCOMPARE(list->count(), 2);
+    QVERIFY(list->item(0)->data(ThumbnailStrip::kGroupStartRole).toBool());
+    QVERIFY(list->item(1)->data(ThumbnailStrip::kGroupStartRole).toBool());
+}
+
 void TestGui::exportDialogFormatScope()
 {
     // Конвертация одного фото не предлагает альбом .qtivp:
@@ -118,6 +147,22 @@ void TestGui::exportDialogFormatScope()
         QVERIFY2(combo->findData(QStringLiteral("qtivp")) >= 0,
                  "playlist dialog must offer .qtivp");
     }
+}
+
+void TestGui::helpWindowShowsContent()
+{
+    // F1 / меню «Справка»: окно руководства с HTML из ресурсов (qtiv_assets).
+    QVERIFY(QMetaObject::invokeMethod(m_window.get(), "showHelp"));
+    HelpWindow* help = m_window->findChild<HelpWindow*>();
+    QVERIFY(help != nullptr);
+    QTextBrowser* browser = help->findChild<QTextBrowser*>();
+    QVERIFY(browser != nullptr);
+    const QString text = browser->toPlainText();
+    QVERIFY2(text.size() > 1000, "help document looks empty");
+    QVERIFY2(text.contains(QStringLiteral("qtivp"), Qt::CaseInsensitive),
+             "help must mention the qtivp tool/format");
+    QVERIFY(!text.startsWith(QStringLiteral("Help file not found")));
+    QVERIFY(!text.startsWith(QStringLiteral("Файл руководства не найден")));
 }
 
 int main(int argc, char* argv[])

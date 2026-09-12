@@ -97,6 +97,46 @@ def kitty_payload(out):
         return None
 
 
+def validate_sixel(out):
+    """Структурная проверка sixel-потока: возвращает (ok, описание)."""
+    m = re.search(rb"\x1bPq(.*?)\x1b\\", out, re.S)
+    if not m:
+        return False, "sixel DCS not found"
+    body = m.group(1)
+
+    # Растер: "pan;pad;ph;pv — размеры должны быть заданы и ненулевые.
+    rm = re.match(rb'"(\d+);(\d+);(\d+);(\d+)', body)
+    if not rm:
+        # атрибут может идти после цветовых определений — ищем где угодно
+        rm = re.search(rb'"(\d+);(\d+);(\d+);(\d+)', body)
+    if not rm:
+        return False, "raster attributes missing"
+    width, height = int(rm.group(3)), int(rm.group(4))
+    if width <= 0 or height <= 0:
+        return False, "raster size is zero"
+
+    defined_colors = set()
+    for cm in re.finditer(rb"#(\d+);2;(\d+);(\d+);(\d+)", body):
+        idx, r, g, b = (int(x) for x in cm.groups())
+        defined_colors.add(idx)
+        if not (0 <= r <= 100 and 0 <= g <= 100 and 0 <= b <= 100):
+            return False, "color component out of 0..100: %s" % cm.group(0)
+
+    # Строчные данные: между '#' и '$'/'-'/'\x1b' — только !RLE и символы 0x3F..0x7E.
+    data_part = re.sub(rb'"[^!-~]', b"", body)  # растр-атрибуты вырезаем грубо
+    for dm in re.finditer(rb"#(\d+)((?:![0-9]+|[?-~]|$)*)", body):
+        color = int(dm.group(1))
+        if not re.match(rb"#(\d+);", dm.group(0)):
+            if defined_colors and color not in defined_colors:
+                return False, "data references undefined color %d" % color
+        chars = re.sub(rb"![0-9]+", b"", dm.group(2))
+        for ch in chars:
+            if ch and not (0x3F <= ch <= 0x7E) and ch not in (ord("$"),):
+                return False, "invalid sixel char 0x%02X" % ch
+
+    return True, "%dx%d, %d colors" % (width, height, len(defined_colors))
+
+
 TESTS = [
     # (название, env, args, ответы терминала, ожидаемый режим)
     ("тихий pty + truecolor → полублоки",
@@ -143,6 +183,16 @@ if png is not None and png.startswith(b"\x89PNG") and len(png) > 100:
 else:
     print("[FAIL] PNG внутри kitty-последовательности битый или отсутствует")
     failures.append("kitty PNG")
+
+# sixel-поток должен быть структурно валидным (растер, цвета, символы)
+rc, out = run({"TERM": "xterm", "COLORTERM": "truecolor"}, ["-c", IMG],
+              {b"\x1b[c": b"\x1b[?62;4;6c"})
+ok, desc = validate_sixel(out)
+if ok:
+    print(f"[ok] sixel-поток валиден: {desc}")
+else:
+    print(f"[FAIL] sixel-поток: {desc}")
+    failures.append("sixel structure")
 
 if failures:
     print(f"\nПровалено: {len(failures)}")

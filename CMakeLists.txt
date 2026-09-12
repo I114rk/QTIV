@@ -5,6 +5,9 @@ project(qtiv VERSION 0.1.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+# PIC обязателен: объекты ресурсов из статических библиотек ссылаются
+# на защищённые символы данных Qt6Core (qt_resourceFeatureZstd).
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets)
 
@@ -35,6 +38,8 @@ add_library(qtiv_core STATIC
     src/CompareView.cpp
     src/ExportDialog.h
     src/ExportDialog.cpp
+    src/HelpWindow.h
+    src/HelpWindow.cpp
     src/MainWindow.h
     src/MainWindow.cpp
 )
@@ -44,7 +49,10 @@ target_link_libraries(qtiv_core PUBLIC Qt6::Widgets)
 
 qt_add_executable(qtiv src/main.cpp)
 
-qt_add_resources(qtiv "assets" PREFIX "/" FILES
+# Ресурсы отдельной статической библиотекой: их используют qtiv, qtivh
+# и GUI-тесты — все линкуются с qtiv_core.
+add_library(qtiv_assets STATIC)
+qt_add_resources(qtiv_assets PREFIX "/" FILES
     assets/theme.qss
     assets/qtiv.svg
     assets/icons/open.svg
@@ -59,7 +67,10 @@ qt_add_resources(qtiv "assets" PREFIX "/" FILES
     assets/icons/album.svg
     assets/icons/fullscreen.svg
     assets/icons/sync.svg
+    assets/help/ru.html
+    assets/help/en.html
 )
+target_link_libraries(qtiv_core PUBLIC qtiv_assets)
 
 target_link_libraries(qtiv PRIVATE qtiv_core)
 
@@ -68,10 +79,15 @@ qt_add_executable(qtivp-tool src/QtivpTool.cpp)
 set_target_properties(qtivp-tool PROPERTIES OUTPUT_NAME qtivp)
 target_link_libraries(qtivp-tool PRIVATE qtiv_core)
 
+# GUI-руководство (qtivh).
+qt_add_executable(qtivh src/QtivhMain.cpp)
+target_link_libraries(qtivh PRIVATE qtiv_core)
+
 include(GNUInstallDirs)
 
-install(TARGETS qtiv qtivp-tool RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS qtiv qtivp-tool qtivh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES packaging/qtiv.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+install(FILES packaging/qtivh.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 install(FILES packaging/x-qtivp.xml DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/mime/packages)
 install(FILES assets/qtiv.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)
 
