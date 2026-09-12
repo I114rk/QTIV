@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QTIV — просмотр, сравнение, конвертация изображений</title>
+<meta name="description" content="Просмотрщик на C++/Qt: сравнение до 8 фото рядом, конвертация, открытый формат альбомов .qtivp и вывод картинок прямо в терминал.">
+<link rel="icon" href="img/qtiv.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap head">
+    <img src="img/qtiv.svg" alt="" width="34" height="34">
+    <div>
+      <h1>QTIV</h1>
+      <p class="tagline">просмотр · сравнение · конвертация · терминал</p>
+    </div>
+    <nav>
+      <a href="#download">скачать</a>
+      <a href="#compare">сравнение</a>
+      <a href="#terminal">терминал</a>
+      <a href="#qtivp">.qtivp</a>
+      <a href="#install">установка</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="intro">
+    <p>Просмотрщик изображений на C++20 и Qt&nbsp;6. Сравнивает до восьми фотографий
+    рядом с синхронным зумом, конвертирует, открывает собственный формат альбомов
+    <b>.qtivp</b> — несколько фото в одном файле без перекодирования. Умеет рисовать
+    картинку прямо в терминале: <code>qtiv -c фото.jpg</code>. Телеметрии нет,
+    аккаунтов нет, фоновых процессов нет.</p>
+    <p class="muted">текущая версия <span id="ver">0.1.2</span> · исходники на
+    <a href="https://github.com/I114rk/QTIV">github.com/I114rk/QTIV</a></p>
+  </section>
+
+  <figure>
+    <img src="img/main.png" width="1280" height="800"
+         alt="Главное окно QTIV: тёмная тема, фото, лента миниатюр снизу">
+    <figcaption>главное окно: открыт альбом demo.qtivp и два отдельных файла;
+    миниатюры сгруппированы по файлам-источникам — альбом одной группой</figcaption>
+  </figure>
+
+  <section id="download">
+    <h2><span>01</span> скачать</h2>
+    <table class="dl">
+      <tr>
+        <th>система</th><th>файл</th><th class="size-h">размер</th><th></th>
+      </tr>
+      <tr>
+        <td>Windows 10+ (64-бит)</td>
+        <td class="mono">qtiv-0.1.2-win64-setup.exe</td>
+        <td class="size mono">—</td>
+        <td><a class="btn" data-asset="win64-setup.exe"
+               href="https://github.com/I114rk/QTIV/releases/latest">скачать</a></td>
+      </tr>
+      <tr>
+        <td>Arch Linux</td>
+        <td class="mono">qtiv-0.1.2-1-x86_64.pkg.tar.zst</td>
+        <td class="size mono">—</td>
+        <td><a class="btn" data-asset="x86_64.pkg.tar.zst"
+               href="https://github.com/I114rk/QTIV/releases/latest">скачать</a></td>
+      </tr>
+      <tr>
+        <td>Debian · Ubuntu (amd64)</td>
+        <td class="mono">qtiv_0.1.2-1_amd64.deb</td>
+        <td class="size mono">—</td>
+        <td><a class="btn" data-asset="amd64.deb"
+               href="https://github.com/I114rk/QTIV/releases/latest">скачать</a></td>
+      </tr>
+      <tr>
+        <td>исходники</td>
+        <td class="mono">tar.gz · zip</td>
+        <td class="size mono">—</td>
+        <td><a class="btn plain" id="srclink"
+               href="https://github.com/I114rk/QTIV/releases/latest">релизы</a></td>
+      </tr>
+    </table>
+    <p class="muted small">Контрольные суммы — на странице релиза. Установщик
+    Windows кладёт три программы: qtiv, qtivp (альбомы из консоли) и qtivh
+    (руководство). Для других систем — сборка из исходников, см. README.</p>
+  </section>
+
+  <section>
+    <h2><span>02</span> что умеет</h2>
+    <ul class="feat">
+      <li><b>Просмотр</b> — зум колесом к курсору до 64×, панорамирование,
+      «по размеру окна» и 1:1, шахматный фон под прозрачностью, EXIF-ориентация.</li>
+      <li><b>Сравнение</b> — от 2 до 8 фото рядом, зум и панорамирование
+      синхронные; каждое фото выбирается в свою панель.</li>
+      <li><b>Конвертация</b> — PNG, JPEG, WebP, AVIF, BMP; одно фото (Ctrl+S)
+      или весь плейлист (Ctrl+Shift+S) с настройкой качества.</li>
+      <li><b>Альбомы .qtivp</b> — упаковать папку в один файл и распаковать
+      обратно байт в байт: qtivp -compress / -extract / -list / -test.</li>
+      <li><b>Терминал</b> — <code>qtiv -c</code>: kitty graphics, sixel,
+      полублоки или ASCII, возможности терминала определяются автоматически.</li>
+      <li><b>Два языка</b> — русский и английский, переключение на лету.
+      Руководство внутри программы: F1 или отдельное окно qtivh.</li>
+    </ul>
+  </section>
+
+  <section id="compare">
+    <h2><span>03</span> сравнение</h2>
+    <figure>
+      <img src="img/compare.png" width="1280" height="800"
+           alt="Режим сравнения: три панели с разными фото">
+      <figcaption>три панели, зум синхронный; панелей может быть от двух до восьми</figcaption>
+    </figure>
+    <p>Из окна — клавишей <kbd>F12</kbd>, из консоли — сразу с нужными фото:</p>
+<pre class="term">qtiv -comp до.jpg после.jpg      <span class="c"># две панели</span>
+qtiv -comp -n=3 отпуск.qtivp      <span class="c"># три фото из альбома</span></pre>
+  </section>
+
+  <section id="terminal">
+    <h2><span>04</span> терминал</h2>
+    <p><code>qtiv -c файл</code> сам выбирает лучший режим: kitty graphics
+    (kitty, WezTerm, Ghostty, Konsole), sixel (foot, xterm, mintty), затем
+    полублоки с truecolor и, на самый крайний случай, ASCII. Режим можно
+    задать флагами <code>--kitty</code> <code>--sixel</code>
+    <code>--half</code> <code>--ascii</code>. Внутри tmux — честные полублоки.</p>
+    <p class="muted small">ниже — реальный вывод команды, не картинка:</p>
+<pre class="art">qtiv -c --ascii examples/mandelbrot.jpg
+<span class="artbody">+++++++************###########*********+
++++++***********################********
+++++**********####################******
++++**********######################*****
++++********############**++**#######****
+++********###########**+==-=+*######****
++********##########***+=-++==+*######***
++*******#########***++=-=+++-=+*######**
+*******########****+=---++*+--=+*#####**
+******########***++=-=+++-:++===+*#####*
+*****#######**++==---++-....:++==*#####*
+*****######**+----:-++........==-*#####*
+****######**+-=+===++:........:+-+*####*
+****#####*++=-++++++=::......::=-+*#####
+****###**+=--=++#*++-:::....:::=-+*#####
+***####+=---=+=***=-:::::...-===-+*#####
+***####=-++++++++-:::::::::+**+--+*#####
+***####*+----++=-..-::::--=*#**=-+*#####
+****####*++=--++=:-=-:::-=+**##+-+*#####
+****#####**+=-=++++*+---=++****+-+*#####
+****######**+==----=+====+++***+-+*####=
+*****######**+==---:=+=-++++**===*#####*
+*****########**++==--++++++++++==*#####*
+******########***++=-==++*-++--=+*#####*
+*******#########***+==--++-+--=+*#####**
++*******##########***+=-++=-+**######**
++********###########**+=-====**######***
+++********###########***==-+**######****
++++*********###########*****#######*****
+++++*********#####################******</span></pre>
+  </section>
+
+  <section id="qtivp">
+    <h2><span>05</span> формат .qtivp</h2>
+    <p>Открытый контейнер: несколько фотографий в одном файле <b>без
+    перекодирования</b>. Внутри — сигнатура <code>QTIVP1\0\0</code>, индекс
+    записей (имя, MIME-тип, размеры, смещения, CRC32) и данные, опционально
+    сжатые zlib. Спецификация занимает две страницы и отдана в общественное
+    достояние (CC0); в тестах лежит независимая реализация на Python.</p>
+<pre class="term">qtivp -compress фото.qtivp img_*.jpg     <span class="c"># упаковать</span>
+qtivp -extract  фото.qtivp ~/out          <span class="c"># распаковать байт в байт</span>
+qtivp -test     фото.qtivp                <span class="c"># проверить CRC всех записей</span></pre>
+    <p class="muted">полная спецификация: <a
+    href="https://github.com/I114rk/QTIV/blob/master/docs/QTIVP-SPEC.md">docs/QTIVP-SPEC.md</a></p>
+  </section>
+
+  <section id="install">
+    <h2><span>06</span> установка</h2>
+<pre class="term"><span class="c"># Arch Linux</span>
+sudo pacman -U qtiv-0.1.2-1-x86_64.pkg.tar.zst
+
+<span class="c"># Debian, Ubuntu, Mint</span>
+sudo apt install ./qtiv_0.1.2-1_amd64.deb
+
+<span class="c"># Windows</span>
+запустить qtiv-0.1.2-win64-setup.exe и нажать «далее»</pre>
+    <p>После установки в меню появится «QTIV» (просмотрщик) и «QTIV Help»
+    (руководство). В терминале работают <code>qtiv</code>,
+    <code>qtivp</code> и <code>qtivh</code>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>QTIV · C++20 / Qt 6 · <a href="https://github.com/I114rk/QTIV/blob/master/LICENSE">MIT</a>
+    · формат .qtivp — <a href="https://github.com/I114rk/QTIV/blob/master/docs/QTIVP-SPEC.md">CC0</a></p>
+    <p class="muted">страница — голый HTML без фреймворков и трекеров;
+    скриншоты сняты с самой программы</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
